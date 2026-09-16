@@ -1,0 +1,11 @@
+.venv/
+
+
+# Windows
+desktop.ini
+Thumbs.db
+ehthumbs.db
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
