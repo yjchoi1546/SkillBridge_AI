@@ -1,14 +1,5 @@
 # Git Convention
 
-## 브렌치
-
-- feat/*
-- fix/*
-- refactor/*
-- docs/*
-- test/*
-- chore/*
-
 ## Commit 메시지
 
 feat or add: 새로운 기능
@@ -21,6 +12,7 @@ perf: 성능 개선
 
 ## Note
 
-1. main 직접 push 금지
-2. feature branch에서 작업
-3. PR 없음
+1. 브랜치 없음 — main에 직접 커밋·push
+2. PR 없음
+3. 작업 전 `git pull`, 작업 끝나면 바로 push
+4. force push 금지 (`--force`, `-f`)

@@ -40,11 +40,14 @@
 
 ## Git
 
-브랜치·커밋 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 따른다. 여기에 협업용으로 더한다.
+커밋 메시지 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 따른다.
+**브랜치·PR 없이 main에 직접 커밋·push한다** — 영역이 겹치지 않아 충돌 여지가 거의 없다.
 
-- 브랜치 이름에 영역을 넣는다: `feat/ai-retriever-rerank`, `fix/app-login-redirect`
+- **작업 시작 전 `git pull`, 작업 끝나면 바로 push.** 로컬에 커밋을 쌓아두면 상대가
+  낡은 main 위에서 작업하게 되고, 그때부터 충돌이 생긴다.
 - **한 커밋에 두 영역을 섞지 않는다.** 공용 파일 변경은 별도 커밋으로 분리한다.
-- 작업 시작 전에 `git pull`, 작업 후 바로 push. 브랜치를 오래 들고 있지 않는다.
+- push가 `non-fast-forward`로 거부되면 `git pull --rebase` 후 다시 push한다.
+  force push는 금지 — 상대 커밋을 날린다.
 - 커밋·push는 사용자가 요청할 때만 한다. Claude가 알아서 커밋하지 않는다.
 
 ## 명령어
