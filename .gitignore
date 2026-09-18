@@ -12,6 +12,9 @@ venv/
 .vscode/
 .idea/
 
+# Claude Code (개인별 권한 설정 — .claude/templates 에서 복사)
+.claude/settings.local.json
+
 # Data
 data/raw/
 data/processed/
