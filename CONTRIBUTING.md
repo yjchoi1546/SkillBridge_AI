@@ -11,7 +11,7 @@
 
 ## Commit 메시지
 
-feat: 새로운 기능
+feat or add: 새로운 기능
 fix: 버그 수정
 refactor: 기능 변경 없는 구조 개선
 docs: 문서
