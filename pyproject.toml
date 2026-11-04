@@ -9,6 +9,7 @@ dependencies = [
     "langchain-anthropic>=1.7.9",
     "langchain-google-genai>=4.4.2",
     "langchain-openai>=1.7.3",
+    "langfuse>=5.1.0",
     "langgraph>=1.2.11",
     "pandas>=3.0.5",
     "pypdf>=6.19.0",
