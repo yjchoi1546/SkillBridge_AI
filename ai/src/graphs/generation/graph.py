@@ -3,6 +3,7 @@ from functools import lru_cache
 from langgraph.graph import END, START, StateGraph
 
 from ...core.errors import GenerationError
+from ...core.tracing import annotate, langchain_callbacks
 from ...schemas import ProjectDraft, ProjectRequest
 from .nodes import (
     analyze_request,
@@ -49,8 +50,11 @@ async def run_generation(
             "feedback": feedback,
             "errors": [],
             "attempts": 0,
-        }
+        },
+        config={"callbacks": langchain_callbacks(), "run_name": "generation-graph"},
     )
+    # KPI 01 (필수 항목 충족률) — 몇 번 만에 검증을 통과했는지
+    annotate(attempts=final.get("attempts", 0), validation_errors=final.get("errors", []))
     if final.get("errors"):
         raise GenerationError(final["errors"])
     return final["draft"]

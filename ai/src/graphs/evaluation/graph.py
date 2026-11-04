@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from langgraph.graph import END, START, StateGraph
 
+from ...core.tracing import langchain_callbacks
 from ...schemas import EvaluationReport, SampleDataset, Submission, TaskSpec
 from .nodes import build_report, check_submission, draft_review, run_tests
 from .routers import route_after_check
@@ -32,6 +33,7 @@ async def run_evaluation(
     task: TaskSpec, dataset: SampleDataset, submission: Submission
 ) -> EvaluationReport:
     final = await build_graph().ainvoke(
-        {"task": task, "dataset": dataset, "submission": submission}
+        {"task": task, "dataset": dataset, "submission": submission},
+        config={"callbacks": langchain_callbacks(), "run_name": "evaluation-graph"},
     )
     return final["report"]

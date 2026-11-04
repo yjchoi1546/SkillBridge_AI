@@ -47,5 +47,8 @@ def llm_settings(task: Task) -> LLMSettings:
     return LLMSettings(provider=provider, model=model)
 
 
+# Langfuse 트레이스 환경. 비어 있으면 development — 개발 중 트레이스가 운영 대시보드에 섞이지 않게.
+TRACING_ENVIRONMENT = os.getenv("LANGFUSE_TRACING_ENVIRONMENT") or "development"
+
 # 생성 그래프에서 검증 실패 시 재생성 최대 횟수
 MAX_GENERATION_RETRIES = int(os.getenv("MAX_GENERATION_RETRIES", "2"))
