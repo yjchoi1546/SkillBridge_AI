@@ -40,15 +40,16 @@
 
 ## Git
 
-커밋 메시지 규칙은 [CONTRIBUTING.md](CONTRIBUTING.md)를 따른다.
-**브랜치·PR 없이 main에 직접 커밋·push한다** — 영역이 겹치지 않아 충돌 여지가 거의 없다.
+커밋 메시지·브랜치 이름·작업 순서는 [CONTRIBUTING.md](CONTRIBUTING.md)를 따른다.
+**작업은 `type/작업명` 브랜치에서 한다** (예: `feat/user-login`). PR·코드 리뷰는 없다.
 
-- **작업 시작 전 `git pull`, 작업 끝나면 바로 push.** 로컬에 커밋을 쌓아두면 상대가
-  낡은 main 위에서 작업하게 되고, 그때부터 충돌이 생긴다.
+- **작업 시작 전 최신 main 에서 브랜치를 딴다.** `git switch main` → `git pull origin main`
+  → `git switch -c feat/기능명`. 낡은 main 에서 따면 merge 때 충돌이 커진다.
+- **main 에 merge 하기 전 최신 main 을 브랜치에 반영**하고 충돌을 해결한다.
+  merge 후 main 을 push 하고, 쓴 브랜치는 로컬·원격 모두 삭제한다.
 - **한 커밋에 두 영역을 섞지 않는다.** 공용 파일 변경은 별도 커밋으로 분리한다.
-- push가 `non-fast-forward`로 거부되면 `git pull --rebase` 후 다시 push한다.
-  force push는 금지 — 상대 커밋을 날린다.
-- 커밋·push는 사용자가 요청할 때만 한다. Claude가 알아서 커밋하지 않는다.
+- force push는 금지 — 상대 커밋을 날린다. push 가 거부되면 pull 로 최신을 받은 뒤 다시 push 한다.
+- 커밋·push·merge는 사용자가 요청할 때만 한다. Claude가 알아서 하지 않는다.
 
 ## 명령어
 
