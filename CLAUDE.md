@@ -43,7 +43,9 @@
   내부 모듈을 app에서 직접 import 하지 않는다.
 - 접점 시그니처(입출력 스키마)를 바꿔야 하면 **AI·App 합의 후** 변경한다. AI 담당이 먼저
   `ai/src/api/`에 새 형태를 추가하고, App 담당이 옮겨간 뒤 옛 형태를 제거한다.
-- 접점이 바뀌면 이 문서의 이 절을 같이 갱신한다.
+- 공개 함수·입출력 타입·호출 순서는 [ai/CONTRACT.md](ai/CONTRACT.md)에 둔다.
+  App 은 `.env` 에 `LLM_PROVIDER=fake` 를 두면 LLM 키 없이 실제와 같은 형태의 결과로 개발할 수 있다.
+- 접점이 바뀌면 이 문서의 이 절과 `ai/CONTRACT.md` 를 같이 갱신한다.
 
 ## Git
 
@@ -65,7 +67,7 @@ Python은 `uv`로 관리한다 (`uv.lock` 기준, Python 3.12+).
 ```bash
 uv sync                  # 의존성 설치
 uv run python main.py    # 실행
-uv run pytest            # 테스트 (도입 후)
+uv run pytest            # 테스트 (LLM 은 가짜 모드라 키·비용 없음)
 ```
 
 - `ai/`: `ai/requirements.txt`는 Docker 이미지용이다. 로컬 개발은 위 `uv`를 쓴다.
