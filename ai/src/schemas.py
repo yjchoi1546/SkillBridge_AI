@@ -17,14 +17,48 @@ class Difficulty(str, Enum):
 
 
 # ── 과제 생성 입력 ─────────────────────────────────────────
+# 기업 원문(요청·첨부 문서·민감 단어)은 기업 본인만 볼 수 있다. 개인 회원에게는 절대 내려보내지 않는다.
+
+
+class CompanyDocument(BaseModel):
+    """기업이 올린 첨부 문서 (개발규격서, 사업계획서 등). 텍스트 추출·목차 파악은 AI 가 한다."""
+
+    filename: str = Field(description="예: 설비모니터링_규격서.pdf")
+    media_type: str = Field(description="예: application/pdf, text/markdown")
+    content: bytes = Field(description="파일 원본 바이트. 트레이스에는 남기지 않는다")
+
+
+class Clarification(BaseModel):
+    """AI 가 되물은 질문과 기업의 답변 (ask_clarifying_questions → 기업 답변 → 다시 요청에 첨부)."""
+
+    question: str
+    answer: str
 
 
 class ProjectRequest(BaseModel):
     """기업의 업무 요청 (화면: /company/requests/new)."""
 
-    request_text: str = Field(description="한두 문장 업무 요청")
+    request_text: str = Field(description="업무 요청 자유 서술. 한두 문장도, 긴 설명도 가능")
     job_roles: list[str] = Field(default_factory=list, description="희망 직무 태그. 예: 데이터 분석")
     data_scope: Literal["synthetic_public", "deidentified", "company_tests"] = "synthetic_public"
+    documents: list[CompanyDocument] = Field(default_factory=list, description="첨부 문서")
+    sensitive_terms: list[str] = Field(
+        default_factory=list,
+        description="공개 과제에 절대 나오면 안 되는 단어. 예: 회사명, 제품명, 내부 시스템명",
+    )
+    generalization: Literal["low", "medium", "high"] = Field(
+        default="medium",
+        description="공개 과제 일반화 수준. low=고유명사만 치환, medium=업종까지 일반화, high=다른 도메인으로 이전",
+    )
+    clarifications: list[Clarification] = Field(default_factory=list)
+
+
+class ClarifyingQuestion(BaseModel):
+    """요청만으로 과제를 만들기에 정보가 부족할 때 AI 가 기업에 되묻는 질문."""
+
+    id: str
+    question: str
+    reason: str = Field(description="왜 필요한지. 화면에 함께 보여준다")
 
 
 # ── 과제 생성 출력 ─────────────────────────────────────────
@@ -70,21 +104,82 @@ class TaskSpec(BaseModel):
 
 
 class ProjectDraft(BaseModel):
-    """AI 과제 초안 (화면: /company/projects/draft). 기업이 검토·수정·승인한다."""
+    """AI 과제 초안 = 공개본 (화면: /company/projects/draft). 기업이 검토·수정·승인하면 개인에게 공개된다.
+
+    원문의 회사명·고유명사·수치는 일반화되어 있어야 한다. 원문과 비교한 결과는 LeakReport 에 따로 둔다.
+    """
 
     title: str
     summary: str
+    domain_tags: list[str] = Field(
+        default_factory=list, description="도메인 태그. 예: 제조, 금융. 개인 회원 탐색 필터용"
+    )
     tasks: list[TaskSpec] = Field(description="초급/중급/고급")
     dataset: SampleDataset
 
 
+class LeakFinding(BaseModel):
+    text: str = Field(description="공개본에서 발견된 표현")
+    location: str = Field(description="공개본 내 위치. 예: tasks[1].goal")
+    source: Literal["sensitive_term", "proper_noun", "number", "llm"] = Field(
+        description="무엇으로 잡았나: 기업 지정 민감 단어 / 원문 고유명사 / 원문 수치 / LLM 판단"
+    )
+
+
+class LeakReport(BaseModel):
+    """공개본에 원문 민감 정보가 남았는지 검사한 결과. **기업 본인에게만** 보여준다."""
+
+    status: Literal["passed", "failed", "not_checked"]
+    findings: list[LeakFinding] = Field(default_factory=list)
+
+
+class GenerationResult(BaseModel):
+    """generate_project / revise_project 결과. draft 는 공개 가능, leak_report 는 기업 전용."""
+
+    draft: ProjectDraft
+    leak_report: LeakReport
+
+
 # ── 제출물 평가 ───────────────────────────────────────────
+
+
+class Reference(BaseModel):
+    """참여자가 문제 해결에 사용한 자료."""
+
+    kind: Literal["dataset", "document", "library", "other"]
+    title: str
+    url: str | None = None
+    note: str = Field(default="", description="어디에 어떻게 썼는지")
+
+
+class ProcessEntry(BaseModel):
+    """해결 과정 기록 한 칸. 질문은 app 화면이 정한다 (권장 질문은 ai/CONTRACT.md)."""
+
+    question: str = Field(description="예: 처음 세운 가설은?")
+    answer: str
+
+
+class FollowupQuestion(BaseModel):
+    """제출물을 보고 AI 가 참여자에게 묻는 후속 질문 (본인이 직접 풀었는지 확인하는 구술 면접 역할)."""
+
+    id: str
+    question: str
+
+
+class FollowupAnswer(BaseModel):
+    question_id: str
+    question: str
+    answer: str
 
 
 class Submission(BaseModel):
     """청년 참여자의 제출물. 파일 저장은 app 이 하고, 평가 시 내용만 넘긴다."""
 
     files: dict[str, str] = Field(description="파일명 -> 텍스트 내용")
+    references: list[Reference] = Field(default_factory=list, description="사용한 자료·데이터 목록")
+    process_log: list[ProcessEntry] = Field(default_factory=list, description="해결 과정 기록")
+    ai_usage: str = Field(default="", description="AI 도구 사용 공개. 빈 문자열 = 사용 안 함")
+    followup_answers: list[FollowupAnswer] = Field(default_factory=list)
 
 
 class TestResult(BaseModel):
