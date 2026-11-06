@@ -1,15 +1,22 @@
 # bgyj-sp 협업 지침
 
-2인 사이드 프로젝트. 각자 자기 로컬에서 Claude Code를 돌린다.
-**한 저장소를 두 사람이 동시에 건드리므로, 폴더 소유권이 이 문서의 핵심이다.**
+3인 팀 프로젝트 (AI 개발자 2명 + 풀스택 1명). 각자 자기 로컬에서 Claude Code를 돌린다.
+**한 저장소를 세 사람이 동시에 건드리므로, 폴더 소유권이 이 문서의 핵심이다.**
 
 ## 소유권
 
 | 영역 | 담당 | 경로 |
 | --- | --- | --- |
-| AI | yjchoi (AI 담당) | `ai/`, `labs/`, `data/` |
-| App | 팀원 (App 담당) | `app/` (frontend + backend) |
-| 공용 | 양쪽 합의 | 루트 파일 (`main.py`, `pyproject.toml`, `uv.lock`, `.python-version`, `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `.gitignore`), `.claude/` |
+| AI-A (과제 생성) | AI 개발자 A (미정) | `ai/src/graphs/generation/`, `ai/src/datagen/`, `ai/src/prompts/generation/`, `ai/src/validation/spec_rules.py`, `ai/tests/generation/` |
+| AI-B (평가) | AI 개발자 B (미정) | `ai/src/graphs/evaluation/`, `ai/src/sandbox/`, `ai/src/prompts/evaluation/`, `ai/src/validation/submission_rules.py`, `ai/tests/evaluation/` |
+| AI 공용 | AI 두 명 합의 | `ai/` 의 나머지 (`schemas.py`, `api/`, `core/`, `llms/`, `benchmarks/`, `ai/tests/fixtures/` 등), `labs/`, `data/` |
+| App | 풀스택 개발자 | `app/` (frontend + backend) |
+| 공용 | 세 명 합의 | 루트 파일 (`main.py`, `pyproject.toml`, `uv.lock`, `.python-version`, `README.md`, `CONTRIBUTING.md`, `CLAUDE.md`, `.gitignore`), `.claude/` |
+
+- AI-A / AI-B 는 서로의 영역을 읽기만 한다. App 과의 경계와 같은 규칙이다.
+- AI 공용은 두 AI 담당 중 누구든 수정할 수 있지만, 수정 전에 상대 AI 담당과 합의한다.
+  그중 `ai/src/schemas.py`, `ai/src/api/` 는 App 과의 접점이므로 App 담당과도 합의한다.
+- `labs/` 노트북은 각자 이름 접두사를 붙여 만든다 (예: `labs/a_prompt_test.ipynb`). 남의 노트북은 수정하지 않는다.
 
 ## 경계 규칙 (가장 중요)
 
@@ -34,7 +41,7 @@
 - **`ai/src/api/` 가 AI 영역의 유일한 공개 진입점.**
   `app/backend`는 이 계층만 호출한다. `ai/src/graphs`, `ai/src/rag`, `ai/src/llms` 등
   내부 모듈을 app에서 직접 import 하지 않는다.
-- 접점 시그니처(입출력 스키마)를 바꿔야 하면 **양쪽 합의 후** 변경한다. AI 담당이 먼저
+- 접점 시그니처(입출력 스키마)를 바꿔야 하면 **AI·App 합의 후** 변경한다. AI 담당이 먼저
   `ai/src/api/`에 새 형태를 추가하고, App 담당이 옮겨간 뒤 옛 형태를 제거한다.
 - 접점이 바뀌면 이 문서의 이 절을 같이 갱신한다.
 
@@ -70,12 +77,17 @@ uv run pytest            # 테스트 (도입 후)
 자기 역할에 맞는 템플릿을 복사한다.
 
 ```powershell
-# AI 담당
-Copy-Item .claude/templates/settings.ai.json .claude/settings.local.json
+# AI 개발자 A (과제 생성)
+Copy-Item .claude/templates/settings.ai-a.json .claude/settings.local.json
 
-# App 담당
+# AI 개발자 B (평가)
+Copy-Item .claude/templates/settings.ai-b.json .claude/settings.local.json
+
+# App 담당 (풀스택)
 Copy-Item .claude/templates/settings.app.json .claude/settings.local.json
 ```
+
+AI 역할(A/B)이 정해지기 전에는 `settings.ai.json`(app/ 만 차단)을 임시로 쓴다.
 
 복사 후 **Claude Code를 재시작**해야 권한 설정이 적용된다.
 적용 확인: `/permissions`에 상대 영역 deny 규칙이 보이면 정상.

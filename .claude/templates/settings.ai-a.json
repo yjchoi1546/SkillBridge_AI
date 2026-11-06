@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "permissions": {
+    "deny": [
+      "Edit(/app/**)",
+      "Edit(/ai/src/graphs/evaluation/**)",
+      "Edit(/ai/src/sandbox/**)",
+      "Edit(/ai/src/prompts/evaluation/**)",
+      "Edit(/ai/src/validation/submission_rules.py)",
+      "Edit(/ai/tests/evaluation/**)"
+    ]
+  }
+}
