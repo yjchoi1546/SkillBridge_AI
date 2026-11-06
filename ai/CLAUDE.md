@@ -19,7 +19,9 @@
 ```text
 ai/src/
   api/          app/backend 가 호출하는 유일한 공개 진입점
-                generate_project / revise_project / evaluate_submission (+ 에러 타입)
+                ask_clarifying_questions / generate_project / revise_project
+                generate_followup_questions / evaluate_submission (+ 에러 타입)
+                호출 순서·App 이 지킬 것은 ai/CONTRACT.md
   schemas.py    ai↔app 계약 타입 정의 (api/schemas.py 로 공개). 바꾸면 app 과 합의
   graphs/
     generation/ 그래프 ① 기업 요청 → 과제 초안 (STEP 1~3)
@@ -46,6 +48,15 @@ ai/Dockerfile, ai/requirements.txt   배포 이미지용
 - 백엔드 프레임워크 / DB → AI 는 모른다. `api/` 는 Pydantic 입출력의 async 함수일 뿐이고 저장은 app 이 한다.
 - 내부 모듈은 `ai/src/schemas.py` 를 import 한다. `api` 를 import 하면 순환 import 가 생긴다.
 - 트레이싱(Langfuse) → `core/tracing.py` 만 langfuse 를 import 한다. 자체 모니터링으로 바꿀 때 이 파일만 교체.
+
+### 가짜 모드와 테스트
+
+- `LLM_PROVIDER=fake` → `llms/fake.py` 의 고정 응답을 스키마 클래스 이름으로 찾아 돌려준다. 키·비용 없음.
+- **노드가 새 스키마로 `generate_structured` 를 부르기 시작하면 `fake.py` 에 같은 이름의 응답을 추가한다.**
+  안 하면 가짜 모드와 테스트가 "응답이 없다"는 에러로 멈춘다.
+- `uv run pytest` — `ai/tests/conftest.py` 가 가짜 모드를 켜고 트레이싱을 끈다. 커밋 전에 돌린다.
+- `ai/tests/` 루트(`test_api.py` 등)는 공개 API 계약 테스트(AI 공용), 영역별 단위 테스트는
+  `tests/generation/`(A), `tests/evaluation/`(B) 에 둔다.
 
 ### 트레이싱 (Langfuse)
 

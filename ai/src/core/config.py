@@ -20,6 +20,9 @@ PROVIDERS: dict[str, tuple[str, str]] = {
 
 DEFAULT_PROVIDER = "anthropic"
 
+# 키 없이 고정 응답을 돌려주는 개발·테스트용 공급자 (llms/fake.py)
+FAKE_PROVIDER = "fake"
+
 
 @dataclass(frozen=True)
 class LLMSettings:
@@ -34,8 +37,12 @@ def llm_settings(task: Task) -> LLMSettings:
         or os.getenv("LLM_PROVIDER")
         or DEFAULT_PROVIDER
     )
+    if provider == FAKE_PROVIDER:
+        return LLMSettings(provider=FAKE_PROVIDER, model=FAKE_PROVIDER)
     if provider not in PROVIDERS:
-        raise ConfigError(f"지원하지 않는 LLM provider: {provider!r} (가능: {', '.join(PROVIDERS)})")
+        raise ConfigError(
+            f"지원하지 않는 LLM provider: {provider!r} (가능: {', '.join(PROVIDERS)}, {FAKE_PROVIDER})"
+        )
 
     key_env, model_env = PROVIDERS[provider]
     if not os.getenv(key_env):

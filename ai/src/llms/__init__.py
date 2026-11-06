@@ -12,7 +12,8 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
 
-from ..core.config import Task, llm_settings
+from ..core.config import FAKE_PROVIDER, Task, llm_settings
+from .fake import fake_response
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -25,6 +26,11 @@ def get_chat_model(task: Task) -> BaseChatModel:
 
 
 async def generate_structured(task: Task, schema: type[T], system: str, user: str) -> T:
-    """시스템/사용자 프롬프트로 호출해 `schema` 인스턴스를 받는다."""
+    """시스템/사용자 프롬프트로 호출해 `schema` 인스턴스를 받는다.
+
+    LLM_PROVIDER=fake 면 LLM 을 부르지 않고 llms/fake.py 의 고정 응답을 돌려준다.
+    """
+    if llm_settings(task).provider == FAKE_PROVIDER:
+        return fake_response(schema)
     model = get_chat_model(task).with_structured_output(schema)
     return await model.ainvoke([("system", system), ("human", user)])
