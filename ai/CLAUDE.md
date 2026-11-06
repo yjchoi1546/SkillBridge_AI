@@ -1,7 +1,15 @@
 # ai/ — AI 영역
 
-담당: yjchoi (AI 담당). **App 담당의 Claude는 이 폴더를 읽기만 한다.**
-전체 경계 규칙은 루트 [CLAUDE.md](../CLAUDE.md) 참고.
+담당: AI 개발자 A(과제 생성) + AI 개발자 B(평가). **App 담당의 Claude는 이 폴더를 읽기만 한다.**
+전체 경계 규칙과 A/B 소유 경로는 루트 [CLAUDE.md](../CLAUDE.md)의 소유권 표 참고.
+
+- **A (생성)**: 그래프 ① 과 그 재료 — `graphs/generation/`, `datagen/`, `prompts/generation/`, `validation/spec_rules.py`
+- **B (평가)**: 그래프 ② 와 그 재료 — `graphs/evaluation/`, `sandbox/`, `prompts/evaluation/`, `validation/submission_rules.py`
+- **AI 공용 (A·B 합의)**: `schemas.py`, `api/`, `core/`, `llms/`, `benchmarks/`, `prompts/__init__.py`, `validation/__init__.py`,
+  `tests/fixtures/`, `Dockerfile`, `requirements.txt`. `schemas.py`·`api/` 는 App 과도 합의한다.
+- 테스트는 `tests/generation/`(A), `tests/evaluation/`(B) 에 나눠 둔다.
+- 상대 그래프가 필요로 하는 값(예: B 가 쓸 `TestCase` 의 정답 필드)은 `schemas.py` 에 먼저 합의해 추가하고,
+  각자 자기 그래프에서 채우거나 읽는다. 상대 노드를 직접 고치지 않는다.
 
 ## 구조
 
