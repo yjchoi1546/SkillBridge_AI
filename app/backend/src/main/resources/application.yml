@@ -1,0 +1,37 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: skillbridge-api
+  jackson:
+    default-property-inclusion: non_null
+  datasource:
+    url: ${SKILLBRIDGE_DATABASE_URL:jdbc:h2:file:./.data/skillbridge;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${SKILLBRIDGE_DATABASE_USER:sa}
+    password: ${SKILLBRIDGE_DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 5
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+skillbridge:
+  demo-enabled: ${SKILLBRIDGE_DEMO_ENABLED:false}
+  seed-demo-data: ${SKILLBRIDGE_SEED_DEMO_DATA:true}
+  demo-delay-ms: 1800
+  max-request-bytes: 2100000
+  ai:
+    mode: ${SKILLBRIDGE_AI_MODE:python}
+    provider: ${LLM_PROVIDER:fake}
+    python-command: ${SKILLBRIDGE_PYTHON:uv}
+    repository-root: ${SKILLBRIDGE_REPOSITORY_ROOT:../..}
+    timeout-seconds: ${SKILLBRIDGE_AI_TIMEOUT:240}
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.boot: INFO

@@ -13,14 +13,21 @@ app/
 
 ## 스택 / 명령어
 
-**TBD** — 아직 미정. App 담당이 정한 뒤 이 절을 채운다. 최소한 아래를 적어둔다.
+사용자 결정: **React + TypeScript + Vite / Spring Boot + Java 21**, DB 접속 정보는 추후 제공.
 
-- backend: 프레임워크, 실행 명령, 테스트 명령
-- frontend: 프레임워크, 패키지 매니저, dev / build / test 명령
-- 로컬에서 frontend ↔ backend 를 같이 띄우는 방법, 포트
-
-스택이 정해지기 전까지는 Claude가 임의로 프레임워크를 골라 스캐폴딩하지 않는다.
-먼저 사용자에게 무엇으로 갈지 묻는다.
+- frontend (`frontend/`): `npm ci`, `npm run dev` (5173), `npm run build`, `npm run test:e2e`.
+- backend (`backend/`): Maven `mvn spring-boot:run` (8080), `mvn test`.
+- 팀원용 Windows x64 실행은 `START.cmd`, 종료는 `STOP.cmd`, 코드 갱신 후에는 `RESTART.cmd`.
+  도구 자동 설치·빌드·포트 선택·브라우저 열기를 처리한다. 기본은 로컬 H2 + fake AI.
+- 서버 모드가 기본이며 `/api`를 Spring으로 프록시한다. `VITE_API_MODE=browser`는 독립 UI 데모다.
+- Windows 실행: 루트에서 `powershell -ExecutionPolicy Bypass -File app/scripts/start-frontend.ps1`.
+  별도 터미널에서 `start-backend.ps1`를 시작한다. `-Server`는 호환 옵션, `-Browser`는 브라우저 데모다.
+- 서버는 JDBC로 계정·세션·워크스페이스를 저장한다. 기본 H2 파일 DB, PostgreSQL은 접속 정보 수령 후 검증한다.
+- `scripts/setup-ai.ps1`은 Python과 의존성을 app 내부에 설치한다. 공유 lockfile은 `--locked`로 유지한다.
+- Spring은 `backend/ai_bridge.py`의 고정 JSON 경계로 기존 `ai.src.api` v2만 호출한다.
+  기본 공급자는 `fake`다. `SKILLBRIDGE_AI_MODE=demo`는 Python을 호출하지 않는다.
+- `SKILLBRIDGE_TEST_PYTHON=true`로 백엔드 테스트를 실행하면 실제 Python 연결 전체 흐름도 검증한다.
+- 계획·API·연동 대기 항목은 [docs/architecture.md](docs/architecture.md), 실행 안내는 [README.md](README.md).
 
 ## 규칙
 

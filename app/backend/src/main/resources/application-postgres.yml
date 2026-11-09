@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${SKILLBRIDGE_DB_HOST:127.0.0.1}:${SKILLBRIDGE_DB_PORT:5432}/${SKILLBRIDGE_DB_NAME:skillbridge}?sslmode=${SKILLBRIDGE_DB_SSLMODE:require}
+    username: ${SKILLBRIDGE_DB_USER}
+    password: ${SKILLBRIDGE_DB_PASSWORD}
+skillbridge:
+  demo-enabled: false
+  seed-demo-data: false

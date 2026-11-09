@@ -1,0 +1,13 @@
+node_modules/
+dist/
+target/
+.cache/
+.data/
+.tools/
+playwright-report/
+test-results/
+*.log
+*.local
+*.tsbuildinfo
+__pycache__/
+.env
