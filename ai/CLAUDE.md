@@ -30,7 +30,8 @@ ai/src/
     evaluation/ 그래프 ② 제출물 → 테스트 + AI 평가 초안 (STEP 4)
                 check_submission ─(형식 미충족)→ build_report
                                  └→ run_tests → draft_review → build_report
-  llms/         LLM 래퍼. 공급자는 .env 의 LLM_PROVIDER 로 교체 (openai/anthropic/google_genai)
+  llms/         LLM 래퍼. 공급자는 .env 의 LLM_PROVIDER 로 교체 (openai/anthropic/google_genai/exaone/fake)
+                공급자 목록·옵션은 core/config.py 의 PROVIDERS 한 곳에서 관리
   prompts/      프롬프트 .md 파일 + load_prompt()
   validation/   LLM 없는 규칙 검증 (과제 초안 필수 항목, 제출물 형식)
   datagen/      LLM 이 설계한 DatasetSpec 으로 CSV 를 seed 고정 생성
