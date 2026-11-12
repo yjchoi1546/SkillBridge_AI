@@ -3,7 +3,6 @@ from ..graphs.generation import run_generation
 from ..schemas import (
     ClarifyingQuestion,
     GenerationResult,
-    LeakReport,
     ProjectDraft,
     ProjectRequest,
 )
@@ -21,14 +20,11 @@ def _request_input(request: ProjectRequest) -> dict:
 
 def _draft_output(draft: ProjectDraft) -> dict:
     # 샘플 CSV 본문은 커서 트레이스 출력에서 빼고 행 수만 남긴다.
-    out = draft.model_dump(mode="json", exclude={"dataset": {"csv"}})
+    out = draft.model_dump(mode="json", exclude={"dataset": {"csv"}, "datasets": {"__all__": {"csv"}}})
     out["dataset"]["rows"] = max(draft.dataset.csv.count("\n") - 1, 0)
+    for meta, ds in zip(out["datasets"], draft.datasets):
+        meta["rows"] = max(ds.csv.count("\n") - 1, 0)
     return out
-
-
-def _result(draft: ProjectDraft) -> GenerationResult:
-    # TODO(AI-A): 유출 검사 노드가 생기면 그래프 결과의 LeakReport 를 그대로 쓴다.
-    return GenerationResult(draft=draft, leak_report=LeakReport(status="not_checked"))
 
 
 async def ask_clarifying_questions(
@@ -71,9 +67,9 @@ async def generate_project(
         user_id=user_id,
         session_id=session_id,
     ) as run:
-        draft = await run_generation(request)
-        run.set_output(_draft_output(draft))
-        return _result(draft)
+        result = await run_generation(request)
+        run.set_output(_draft_output(result.draft))
+        return result
 
 
 async def revise_project(
@@ -92,6 +88,6 @@ async def revise_project(
         user_id=user_id,
         session_id=session_id,
     ) as run:
-        revised = await run_generation(request, previous_draft=draft, feedback=feedback)
-        run.set_output(_draft_output(revised))
-        return _result(revised)
+        result = await run_generation(request, previous_draft=draft, feedback=feedback)
+        run.set_output(_draft_output(result.draft))
+        return result

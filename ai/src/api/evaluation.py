@@ -1,6 +1,7 @@
 from ..core.tracing import trace_run
 from ..graphs.evaluation import run_evaluation
 from ..schemas import (
+    EvaluationKey,
     EvaluationReport,
     FollowupQuestion,
     SampleDataset,
@@ -51,13 +52,17 @@ async def evaluate_submission(
     dataset: SampleDataset,
     submission: Submission,
     *,
+    evaluation_key: EvaluationKey | None = None,
     user_id: str | None = None,
     session_id: str | None = None,
 ) -> EvaluationReport:
     """제출물 → 테스트 결과 + AI 평가 초안 (STEP 4).
 
+    evaluation_key: (v3) 생성 결과의 기업·평가 전용 정보(숨은 함정·정답). App 은 저장해 둔 것을 그대로 넘긴다.
     user_id: 참여자 ID, session_id: 프로젝트 ID 를 넘기면 생성·수정·평가 트레이스가 한 세션으로 묶인다.
     """
+    # TODO(AI-B): evaluation_key 를 평가 그래프에 넘겨 run_tests(정답 비교)·draft_review(함정 확인)에 쓴다.
+    _ = evaluation_key
     with trace_run(
         "evaluate-submission",
         input=_submission_input(task, submission),

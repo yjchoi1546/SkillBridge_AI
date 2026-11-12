@@ -100,3 +100,48 @@ def test_evaluate_valid_submission_produces_review(generated):
 def test_followup_questions_stub_returns_empty(generated):
     submission = api.Submission(files={"main.py": "print(1)"})
     assert asyncio.run(api.generate_followup_questions(generated.tasks[0], submission)) == []
+
+
+# ── v3 계약 ───────────────────────────────────────────────
+
+
+def test_v3_draft_has_context_rules_scenarios(sample_requests):
+    draft = _generate(_request(sample_requests)).draft
+
+    assert draft.context and draft.context.reference_date
+    assert {r.source for r in draft.rules} <= {"company", "assumed"}
+    for task in draft.tasks:
+        assert sorted(s.kind for s in task.scenarios) == ["changed", "exception", "normal"]
+        assert task.done_examples and task.not_done_examples
+
+
+def test_v3_datasets_starts_with_dataset(sample_requests):
+    draft = _generate(_request(sample_requests)).draft
+    assert draft.datasets and draft.datasets[0] == draft.dataset  # App 이 옮겨 가는 동안 둘 다 채운다
+
+
+def test_v3_evaluation_key_stays_out_of_public_draft(sample_requests):
+    """숨은 함정·정답은 기업·평가 전용. App 이 공개하는 draft 에 섞이면 안 된다."""
+    result = _generate(_request(sample_requests))
+
+    assert result.evaluation_key.hidden_checks  # 가짜 데이터에는 결측·이상치가 심겨 있다
+    public = result.draft.model_dump_json()
+    assert "hidden_checks" not in public and "answers" not in public
+    for check in result.evaluation_key.hidden_checks:
+        assert check.how_to_check not in public
+
+
+def test_v3_request_intake_is_optional(sample_requests):
+    request = _request(sample_requests, intake=api.CompanyIntake(decision_maker="지역본부장"))
+    assert _generate(request).draft.tasks
+
+
+def test_v3_evaluate_accepts_evaluation_key(sample_requests):
+    result = _generate(_request(sample_requests))
+    submission = api.Submission(files={"main.py": "print(1)"})
+    report = asyncio.run(
+        api.evaluate_submission(
+            result.draft.tasks[0], result.draft.dataset, submission, evaluation_key=result.evaluation_key
+        )
+    )
+    assert report.test_results

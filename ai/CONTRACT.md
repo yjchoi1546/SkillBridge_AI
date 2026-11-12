@@ -1,4 +1,4 @@
-# AI ↔ App 계약 (v2 — 수정 의견은 언제든 환영, 바꿀 때는 세 명 합의)
+# AI ↔ App 계약 (v3 — 수정 의견은 언제든 환영, 바꿀 때는 세 명 합의)
 
 App(백엔드)이 AI 를 부르는 방법. 코드 정의는 [src/schemas.py](src/schemas.py), 함수는 [src/api/](src/api/).
 App 은 `from ai.src.api import ...` 로만 가져온다. 모든 함수는 `async` 이고 1~3분 걸릴 수 있으니
@@ -11,14 +11,15 @@ App 은 `from ai.src.api import ...` 로만 가져온다. 모든 함수는 `asyn
   기업 등록 → ask_clarifying_questions(request)
                 ├ 질문 있음 → 기업 답변 → request.clarifications 에 담아 다시 호출하거나 바로 생성
                 └ 질문 없음 ↓
-              generate_project(request)        → GenerationResult(draft, leak_report)
+              generate_project(request)        → GenerationResult(draft, leak_report, evaluation_key)
   기업 검토 → revise_project(request, draft, feedback) → GenerationResult   (반복)
-  기업 승인 → app 이 draft 를 공개 (leak_report 는 계속 기업 전용)
+  기업 승인 → app 이 draft 를 공개 (leak_report·evaluation_key 는 계속 기업 전용)
 
 [제출물 평가]
   개인 제출 → generate_followup_questions(task, submission) → list[FollowupQuestion]
   개인 답변 → submission.followup_answers 에 담아
-              evaluate_submission(task, dataset, submission) → EvaluationReport
+              evaluate_submission(task, dataset, submission,
+                                  evaluation_key=저장해 둔 것) → EvaluationReport
   기업 검토 → app 이 기업 피드백을 붙여 최종 리포트 확정
 ```
 
@@ -30,6 +31,29 @@ App 화면·DB·작업 큐를 이걸로 먼저 만들고, 결제 후 `openai` �
 
 `user_id`(회원 ID), `session_id`(프로젝트 ID)를 넘기면 Langfuse 트레이스가 프로젝트 단위로 묶인다.
 실명·이메일은 넘기지 않는다.
+
+## v2 → v3 변경점 (실무 수준 과제)
+
+기준 예시는 [docs/example_project.md](../docs/example_project.md). **모든 필드에 기본값이 있어 v2 코드는 그대로 동작한다.**
+
+| 타입 / 함수 | 추가 | 공개 범위 | App 할 일 |
+| --- | --- | --- | --- |
+| `ProjectRequest.intake` (`CompanyIntake`) | 질문 5개: `problem`, `decision_maker`, `rules`, `data_sources`, `success_criteria` (모두 문자열, 빈 칸 허용) | 기업 전용 | 요청 화면을 질문별 입력칸으로 (선택) |
+| `ClarifyingQuestion.slot` | 어느 빈 칸을 채우는 질문인지 (`InputSlot`) | 기업 전용 | 답변을 해당 칸 옆에 표시 (선택) |
+| `ProjectDraft.context` (`ProjectContext`) | 가상 회사 `company`, 기준일 `reference_date`, `background`, `facts`, `departments` | 공개 | 과제 상세에 세계관 표시 |
+| `ProjectDraft.rules` (`BusinessRule`) | `id`, `text`, `source`(`company`/`assumed`), `note` | 공개 | `assumed` 에 **(가정)** 배지 |
+| `TaskSpec.scenarios` (`Scenario`) | 난이도마다 `kind` = `normal` / `changed` / `exception` 하나씩, `situation`, `expected` | 공개 | 난이도 탭에 시나리오 표 |
+| `TaskSpec.done_examples`, `not_done_examples` | 완성 / 미완성 예시 | 공개 | 난이도 탭에 표시 |
+| `ProjectDraft.datasets` | 데이터 파일 전체. **`datasets[0]` = `dataset`** | 공개 | 파일 목록 다운로드. 옮겨 간 뒤 알려 주면 `dataset` 제거 (v4) |
+| `SampleDataset.description` | 파일 설명 (예: 조건 변경 시나리오용 정정본) | 공개 | 다운로드 목록에 표시 |
+| `ProjectDraft.data_notes` | 참여자에게 미리 알리는 데이터 한계 | 공개 | 데이터 명세 아래 표시 |
+| `GenerationResult.evaluation_key` (`EvaluationKey`) | `hidden_checks`(숨은 함정), `answers`(auto 테스트 정답 `TestAnswer`) | **기업·평가 전용** | 비공개 저장, 기업 화면에만 함정 표시, 평가 시 그대로 전달 |
+| `evaluate_submission(..., evaluation_key=)` | 선택 인자. 없으면 v2 처럼 동작 | — | `ai_bridge` evaluate 에 전달 |
+
+현재 채워지는 정도 (가짜 모드는 전부 예시 값이 있다):
+- 실제 LLM: `context`, `rules`, `scenarios`, 완성·미완성 예시, `data_notes` 는 생성 프롬프트로 채운다. `intake`·`slot` 은 AI-A 다음 작업.
+- `datasets` 는 아직 1개. 여러 파일과 숨은 함정(중복 행·표기 변형 등)은 AI-A 데이터 생성 확장 후.
+- `hidden_checks` 는 지금 결측·이상치만. `answers` 는 빈 목록 (AI-A 정답 계산 후). 정답 비교는 AI-B 샌드박스 구현 후.
 
 ## v1 → v2 변경점
 
@@ -49,8 +73,10 @@ AI 쪽 구현이 들어와도 App 코드는 바뀌지 않는다.
 
 ## App 이 지켜야 할 것
 
-- **원문은 기업 본인만.** `ProjectRequest` 전체(요청 원문, `documents`, `sensitive_terms`, `clarifications`)와
-  `LeakReport` 는 개인 회원 API 응답에 절대 포함하지 않는다. 개인에게는 승인된 `ProjectDraft` 만.
+- **원문은 기업 본인만.** `ProjectRequest` 전체(요청 원문, `intake`, `documents`, `sensitive_terms`, `clarifications`)와
+  `LeakReport`, **`EvaluationKey`(숨은 함정·정답)** 는 개인 회원 API 응답에 절대 포함하지 않는다. 개인에게는 승인된 `ProjectDraft` 만.
+- 정답·숨은 함정은 `ProjectDraft` / `TaskSpec` 밖(`GenerationResult.evaluation_key`)에만 둔다. App 이 `draft.tasks` 를
+  그대로 공개해도 정답이 새지 않게 하려는 것이다. 반대로 `evaluation_key` 를 공개 데이터에 합치지 않는다.
 - `CompanyDocument.content` 는 원본 바이트다. DB 컬럼보다는 파일 저장소에 두고, 호출할 때 읽어서 넘긴다.
 - `LeakReport.status == "failed"` 인 초안은 승인 버튼을 막거나 경고를 띄운다. `"not_checked"` 는 아직 검사기가
   없다는 뜻이다 (AI-A 구현 전).
@@ -64,6 +90,7 @@ AI 쪽 구현이 들어와도 App 코드는 바뀌지 않는다.
 
 ## 아직 정하지 않은 것
 
-- **자동 테스트 형식** — `TestCase` 에 정답값 필드(`expected` 등)를 추가할지. AI-B 샌드박스 방식이 정해지면 v3 로 추가.
+- **정답 비교 방식** — 정답은 v3 `EvaluationKey.answers` (`TestAnswer.expected` 는 JSON 값)로 정했다.
+  참여자 출력 파일을 어떻게 읽어 비교할지(파일 이름, 표 비교 규칙)는 AI-B 샌드박스와 AI-A 정답 계산이 맞춘다. App 영향 없음.
 - **`CompanyDocument` 를 바이트로 받을지 텍스트로 받을지** — 지금은 바이트(문서 해석은 AI 가 담당).
 - **도메인 태그 목록** — 자유 입력으로 둘지, 고정 목록(제조/금융/커머스/…)으로 둘지. 필터 UI 와 같이 정한다.
