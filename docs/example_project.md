@@ -165,9 +165,11 @@ auto 테스트의 정답은 데이터를 만든 seed 로 미리 계산해 둔다
 
 ---
 
-## ③ 지금 스키마(`ai/src/schemas.py`)와의 차이 — 합의가 필요한 것
+## ③ 스키마와의 차이 — 계약 v3 로 반영됨
 
-이 예시를 그대로 담으려면 아래가 필요하다. **`schemas.py` 는 App 과의 계약이라 세 명 합의 후 바꾼다.**
+아래 표는 v2 기준으로 정리한 차이이고, **계약 v3 로 반영했다.** 실제 필드 이름과 App 할 일은 [ai/CONTRACT.md](../ai/CONTRACT.md) "v2 → v3 변경점".
+제안과 달라진 점: 질문 5개는 `ProjectRequest.intake`, 숨은 함정과 테스트 정답은 `ProjectDraft`·`TestCase` 가 아니라
+`GenerationResult.evaluation_key` 에 둔다 (App 이 `draft.tasks` 를 그대로 공개하므로 그 안에 두면 정답이 샌다).
 
 | 필요한 것 | 지금 | 제안 | 영향 |
 | --- | --- | --- | --- |

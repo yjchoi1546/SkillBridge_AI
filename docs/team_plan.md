@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | A / B 담당자 | 아래 표를 보고 AI 두 명이 나눈다. 정해지면 `CLAUDE.md` 소유권 표의 "(미정)" 을 이름으로 바꾼다 | AI 두 명 |
 | 샌드박스 방식 | Rockchip 보드는 쓰지 않는 방향 (대회 조건에 없으면). Pyodide 와 Docker 중 실험 후 결정 | B |
-| 스키마 v3 | [example_project.md](example_project.md) ③ 의 필드 추가 여부 | **세 명** |
+| ~~스키마 v3~~ | **확정** — [ai/CONTRACT.md](../ai/CONTRACT.md) "v2 → v3 변경점" | 세 명 |
 | 남은 계약 미결 항목 | 첨부 문서 바이트/텍스트, 도메인 태그 자유 입력/고정 목록 ([ai/CONTRACT.md](../ai/CONTRACT.md)) | 세 명 |
 
 ## 1. A 와 B 비교
@@ -54,7 +54,7 @@
 
 | 작업 | 내용 | 합의 |
 | --- | --- | --- |
-| 스키마 v3 | 시나리오, 규칙, 데이터 여러 개, 숨은 함정, `TestCase.expected` 추가 | **세 명** (App 화면·DB 영향) |
+| 스키마 v3 | **확정.** 시나리오, 규칙, 데이터 여러 개, 숨은 함정·정답(`evaluation_key`) | 세 명 (App 화면·DB 영향) |
 | 정답 형식 약속 | A 가 만드는 정답을 B 가 읽는 형태 (A5 ↔ B2 접점) | A·B |
 | 가짜 응답 갱신 | 스키마가 바뀌면 `ai/src/llms/fake.py` 도 같이 갱신 | A·B |
 | 품질 측정 | 필수 항목 충족률, AI·기업 평가 일치도 등 (`ai/src/benchmarks/`) | A·B |
@@ -75,4 +75,6 @@
   `powershell.exe` 줄 위에 `set "PSModulePath="` 추가 필요 (`RESTART.cmd`, `STOP.cmd` 도 같은 방식이면 동일).
 - `app/scripts/setup-ai.ps1`: 저장소가 exFAT/FAT32 드라이브에 있으면 uv 의 Python 설치가 정션 생성에서 실패한다.
   `UV_PYTHON_INSTALL_DIR` 을 `$env:LOCALAPPDATA` 아래로 옮기는 것을 제안.
-- 스키마 v3 가 합의되면 과제 상세 화면에 시나리오·규칙·데이터 한계 표시, 숨은 함정은 기업·평가 전용 권한이 필요하다.
+- 스키마 v3 확정 ([ai/CONTRACT.md](../ai/CONTRACT.md)): 과제 상세 화면에 세계관·규칙((가정) 배지)·시나리오·완성/미완성 예시·데이터 한계 표시.
+  `evaluation_key` 는 비공개 저장 후 기업 화면에만 숨은 함정 표시, `evaluate_submission` 에 그대로 전달.
+  `draft.datasets` 로 옮겨 가면 알려 주세요 (그 뒤 `dataset` 제거).
