@@ -12,6 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ..schemas import HiddenCheck
+
 
 class ColumnSpec(BaseModel):
     name: str
@@ -61,3 +63,32 @@ def generate_csv(spec: DatasetSpec, seed: int) -> str:
     for _ in range(spec.n_rows):
         writer.writerow([_value(c, rng) for c in spec.columns])
     return buf.getvalue()
+
+
+def hidden_checks_from_spec(spec: DatasetSpec) -> list[HiddenCheck]:
+    """생성 설정에서 실제로 심긴 데이터 함정을 목록으로 만든다 (기업·평가 전용).
+
+    LLM 설명이 아니라 생성기 설정에서 계산하므로, 목록에 있는 함정은 데이터에 실제로 있다.
+    TODO(AI-A): A4 에서 중복 행·표기 변형·누락일 같은 함정을 추가하면 여기에도 반영한다.
+    """
+    checks: list[HiddenCheck] = []
+    for col in spec.columns:
+        if col.null_rate:
+            checks.append(
+                HiddenCheck(
+                    id=f"H{len(checks) + 1}",
+                    title=f"{col.name} 결측",
+                    location=f"{spec.filename} 의 {col.name} 컬럼, 약 {col.null_rate:.0%} 행",
+                    how_to_check="결측을 발견해 처리했고, 처리 기준(제외·대체 등)과 영향을 설명했는지 확인",
+                )
+            )
+        if col.anomaly_rate and col.dtype in ("int", "float"):
+            checks.append(
+                HiddenCheck(
+                    id=f"H{len(checks) + 1}",
+                    title=f"{col.name} 이상치 (정상 범위의 5~10배)",
+                    location=f"{spec.filename} 의 {col.name} 컬럼, 약 {col.anomaly_rate:.0%} 행",
+                    how_to_check="이상치를 그대로 합산하지 않고, 판단 기준과 처리 방법을 설명했는지 확인",
+                )
+            )
+    return checks

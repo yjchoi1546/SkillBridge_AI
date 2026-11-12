@@ -3,11 +3,18 @@ from typing import Literal, TypedDict
 from pydantic import BaseModel, Field
 
 from ...datagen import DatasetSpec
-from ...schemas import Difficulty, ProjectDraft, ProjectRequest, SampleDataset, TaskSpec
-
-
-InputSlot = Literal["problem", "decision_maker", "rules", "data_sources", "success_criteria"]
-"""기업 입력 질문 5개 (docs/example_project.md ①): 막히는 업무 / 누가 무엇을 결정 / 판단 규칙 / 쓰는 데이터 / 성공 기준."""
+from ...schemas import (
+    BusinessRule,
+    Difficulty,
+    EvaluationKey,
+    InputSlot,
+    ProjectContext,
+    ProjectDraft,
+    ProjectRequest,
+    SampleDataset,
+    Scenario,
+    TaskSpec,
+)
 
 
 class Rule(BaseModel):
@@ -48,12 +55,18 @@ class TaskOutline(BaseModel):
     steps: list[str]
     deliverables: list[str]
     skills: list[str]
+    scenarios: list[Scenario] = Field(default_factory=list, description="normal / changed / exception 하나씩")
+    done_examples: list[str] = Field(default_factory=list)
+    not_done_examples: list[str] = Field(default_factory=list)
 
 
 class ProjectOutline(BaseModel):
     title: str
     summary: str
     tasks: list[TaskOutline]
+    context: ProjectContext | None = None
+    rules: list[BusinessRule] = Field(default_factory=list)
+    data_notes: list[str] = Field(default_factory=list, description="참여자에게 미리 알리는 데이터 한계")
 
 
 class GenerationState(TypedDict, total=False):
@@ -69,6 +82,7 @@ class GenerationState(TypedDict, total=False):
     dataset: SampleDataset  # design_dataset
     tasks: list[TaskSpec]  # design_evaluation
     draft: ProjectDraft  # validate_draft
+    evaluation_key: EvaluationKey  # validate_draft (기업·평가 전용)
 
     # 검증 루프
     errors: list[str]

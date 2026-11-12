@@ -4,7 +4,7 @@ from langgraph.graph import END, START, StateGraph
 
 from ...core.errors import GenerationError
 from ...core.tracing import annotate, langchain_callbacks
-from ...schemas import ProjectDraft, ProjectRequest
+from ...schemas import GenerationResult, LeakReport, ProjectDraft, ProjectRequest
 from .nodes import (
     analyze_request,
     design_dataset,
@@ -42,7 +42,7 @@ async def run_generation(
     request: ProjectRequest,
     previous_draft: ProjectDraft | None = None,
     feedback: str | None = None,
-) -> ProjectDraft:
+) -> GenerationResult:
     final = await build_graph().ainvoke(
         {
             "request": request,
@@ -57,4 +57,9 @@ async def run_generation(
     annotate(attempts=final.get("attempts", 0), validation_errors=final.get("errors", []))
     if final.get("errors"):
         raise GenerationError(final["errors"])
-    return final["draft"]
+    # TODO(AI-A): 유출 검사 노드가 생기면 그 LeakReport 를 쓴다.
+    return GenerationResult(
+        draft=final["draft"],
+        leak_report=LeakReport(status="not_checked"),
+        evaluation_key=final["evaluation_key"],
+    )
