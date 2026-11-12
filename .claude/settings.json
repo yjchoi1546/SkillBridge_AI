@@ -5,10 +5,7 @@
       "Read(.env)",
       "Read(.env.*)",
       "Bash(git push --force*)",
-      "Bash(git push -f*)",
-      "Edit(/ai/**)",
-      "Edit(/labs/**)",
-      "Edit(/data/**)"
+      "Bash(git push -f*)"
     ]
   }
 }
