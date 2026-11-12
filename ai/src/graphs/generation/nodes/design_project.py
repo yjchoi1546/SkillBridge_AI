@@ -2,12 +2,13 @@
 
 from ....llms import generate_structured
 from ....prompts import load_prompt
+from ..request_input import format_request
 from ..state import GenerationState, ProjectOutline
 
 
 async def design_project(state: GenerationState) -> dict:
     parts = [
-        f"업무 요청:\n{state['request'].model_dump_json(indent=2)}",
+        f"업무 요청:\n{format_request(state['request'])}",
         f"문제 분석:\n{state['analysis'].model_dump_json(indent=2)}",
     ]
     if state.get("previous_draft"):

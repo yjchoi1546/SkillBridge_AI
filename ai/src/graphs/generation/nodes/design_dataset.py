@@ -6,12 +6,13 @@ from ....datagen import DatasetSpec, generate_csv
 from ....llms import generate_structured
 from ....prompts import load_prompt
 from ....schemas import DatasetColumn, SampleDataset
+from ..request_input import format_request
 from ..state import GenerationState
 
 
 async def design_dataset(state: GenerationState) -> dict:
     user = (
-        f"업무 요청:\n{state['request'].model_dump_json(indent=2)}\n\n"
+        f"업무 요청:\n{format_request(state['request'])}\n\n"
         f"과제 구성:\n{state['outline'].model_dump_json(indent=2)}"
     )
     spec = await generate_structured(
