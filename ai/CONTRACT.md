@@ -98,8 +98,9 @@ AI 쪽 구현이 들어와도 App 코드는 바뀌지 않는다.
 - 정답·숨은 함정은 `ProjectDraft` / `TaskSpec` 밖(`GenerationResult.evaluation_key`)에만 둔다. App 이 `draft.tasks` 를
   그대로 공개해도 정답이 새지 않게 하려는 것이다. 반대로 `evaluation_key` 를 공개 데이터에 합치지 않는다.
 - `CompanyDocument.content` 는 원본 바이트다. DB 컬럼보다는 파일 저장소에 두고, 호출할 때 읽어서 넘긴다.
-- `LeakReport.status == "failed"` 인 초안은 승인 버튼을 막거나 경고를 띄운다. `"not_checked"` 는 아직 검사기가
-  없다는 뜻이다 (AI-A 구현 전).
+- `LeakReport.status == "failed"` 인 초안은 승인 버튼을 막거나 경고를 띄운다. 지금은 기업이 지정한 민감 단어(`sensitive_terms`)가
+  공개본(문서·CSV 포함)에 남았는지 검사한다. 남아 있어도 생성은 성공하고 `failed` 와 위치(`findings`)를 돌려준다.
+  원문 고유명사·수치 비교는 이후 추가 (AI-A). `"not_checked"` 는 더 이상 나오지 않는다.
 - `Submission.process_log` 의 질문은 App 화면이 정한다. 권장 질문:
   1. 처음 문제를 보고 세운 가설이나 접근 방법은?
   2. 시도했다가 버린 방법과 그 이유는?

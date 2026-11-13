@@ -33,9 +33,17 @@ def test_generate_project_returns_three_difficulties(sample_requests):
         assert task.rubric and task.tests
 
 
-def test_leak_report_not_checked_until_implemented(sample_requests):
+def test_leak_report_passes_without_sensitive_terms(sample_requests):
     result = _generate(_request(sample_requests))
-    assert result.leak_report.status == "not_checked"
+    assert result.leak_report.status == "passed"
+
+
+def test_leak_report_flags_sensitive_term_but_returns_draft(sample_requests):
+    """민감 단어가 끝까지 남으면 생성은 성공하고 LeakReport 가 failed — App 이 공개를 막는다."""
+    result = _generate(_request(sample_requests, sensitive_terms=["강남점"]))  # 가짜 응답에 들어 있는 지점명
+    assert result.leak_report.status == "failed"
+    assert {f.source for f in result.leak_report.findings} == {"sensitive_term"}
+    assert result.draft.title
 
 
 def test_dataset_csv_matches_columns_and_is_reproducible(sample_requests):
@@ -167,3 +175,19 @@ def test_v4_evaluation_functions_accept_project(sample_requests):
         api.evaluate_submission(task, draft.dataset, submission, project=draft, evaluation_key=result.evaluation_key)
     )
     assert report.test_results
+
+
+def test_v4_draft_is_a_material_room(sample_requests):
+    """생성 결과가 자료실형 과제 1개의 모양을 갖췄는지 (App 화면이 기대하는 형태)."""
+    result = _generate(_request(sample_requests))
+    draft = result.draft
+
+    assert draft.problem and draft.problem.mission
+    assert len(draft.datasets) >= 2 and draft.dataset == draft.datasets[0]
+    assert {d.kind for d in draft.documents} >= {"policy", "record", "opinion"}
+    assert sorted(s.kind for s in draft.required_demos) == ["changed", "exception", "normal"]
+    assert 3 <= len(draft.design_questions) <= 5
+    assert all(q.max_chars == 500 for q in draft.design_questions)
+    assert any(r.category == "authority" for r in draft.rules)
+    assert len(draft.tasks) == 3  # 전환 기간 호환용
+    assert result.evaluation_key.hidden_checks
