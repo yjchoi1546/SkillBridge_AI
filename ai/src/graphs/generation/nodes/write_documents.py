@@ -2,12 +2,14 @@
 
 from ....llms import generate_structured
 from ....prompts import load_prompt
+from ..assembly import company_instruction
 from ..context import data_summary, revision_parts, world_text
 from ..state import DocumentSet, GenerationState
 
 
 async def write_documents(state: GenerationState) -> dict:
     parts = [
+        company_instruction(state["request"]),
         world_text(state["world"]),
         data_summary(state["data_plan"], state["data"], include_hidden=True),
         *revision_parts(state, with_errors=False),

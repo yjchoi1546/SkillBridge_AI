@@ -2,7 +2,14 @@
 
 from ....schemas import EvaluationKey, ProjectDraft, SampleDataset
 from ....validation import check_draft
-from ..assembly import LEAK_PREFIX, check_leak, compat_tasks, merge_design_questions
+from ..assembly import (
+    LEAK_PREFIX,
+    apply_company_mode,
+    check_leak,
+    compat_tasks,
+    leak_terms,
+    merge_design_questions,
+)
 from ..state import GenerationState
 
 _EMPTY = SampleDataset(filename="empty.csv", columns=[], csv="", seed=0)
@@ -32,9 +39,11 @@ async def validate_draft(state: GenerationState) -> dict:
         not_done_examples=finish.not_done_examples,
         tests=finish.tests,
     )
+    req = state["request"]
+    apply_company_mode(draft, req)  # 실제 회사명 모드: 외부 기사 제외 + 합성 자료 표시
     draft.tasks = compat_tasks(draft)
 
-    leak = check_leak(draft, state["request"].sensitive_terms)
+    leak = check_leak(draft, leak_terms(req))
     errors = [*data.errors, *check_draft(draft)]
     # [leak] 오류는 재시도 사유가 되지만, 재시도 후에도 남으면 생성을 실패시키지 않고 LeakReport 로 기업에게 보여 준다.
     errors += [f"{LEAK_PREFIX} 민감 단어 '{f.text}' 가 공개본 {f.location} 에 있음 — 일반적인 표현으로 바꿀 것" for f in leak.findings]

@@ -6,6 +6,7 @@ from ...schemas import (
     LeakFinding,
     LeakReport,
     ProjectDraft,
+    ProjectRequest,
     TaskSpec,
 )
 
@@ -74,6 +75,60 @@ def compat_tasks(draft: ProjectDraft) -> list[TaskSpec]:
         not_done_examples=draft.not_done_examples,
     )
     return [TaskSpec(difficulty=d, **base) for d in Difficulty]
+
+
+def effective_generalization(req: ProjectRequest) -> str:
+    """실제 회사명(low)은 회사 이름이 있고, 기업이 그 이름을 민감 단어로 막지 않았을 때만 쓴다. 아니면 가상 기업(medium)."""
+    if req.generalization == "low":
+        name = req.company_name.strip()
+        blocked = any(t.strip() and (t.strip() in name or name in t) for t in req.sensitive_terms)
+        if not name or blocked:
+            return "medium"
+    return req.generalization
+
+
+def company_instruction(req: ProjectRequest) -> str:
+    """노드 프롬프트에 넣는 '과제 속 회사' 지시."""
+    mode, name = effective_generalization(req), req.company_name.strip()
+    if mode == "low":
+        return (
+            f"과제 속 회사 설정: 실제 출제 기업 '{name}' 을 그대로 쓴다. context.company 는 '{name}' 으로 시작한다. "
+            "단 데이터·문서는 모두 과제용 합성이므로 실제 실적·사건·인물처럼 단정하지 않고, "
+            "이 회사에 대한 외부 기사(kind=external) 문서는 만들지 않는다."
+        )
+    if mode == "high":
+        return "과제 속 회사 설정: 업무 구조는 그대로 두고 다른 업종으로 옮긴 가상 기업을 만든다. 이름 뒤에 '(가상 기업)'. 출제 기업 이름은 쓰지 않는다."
+    return "과제 속 회사 설정: 같은 업종의 가상 기업을 새로 만든다. 이름 뒤에 '(가상 기업)'. 출제 기업 이름은 쓰지 않는다."
+
+
+def apply_company_mode(draft: ProjectDraft, req: ProjectRequest) -> None:
+    """실제 회사명 모드의 약속을 코드로 지킨다 (LLM 재시도에 맡기지 않는다).
+
+    - 실제 회사에 대한 외부 기사 문서는 뺀다 (지어낸 기사가 실제 보도처럼 읽히지 않게)
+    - 모든 문서 앞에 '합성 자료' 표시, 데이터 한계 맨 앞에 'CSV 는 합성' 표시
+    - context.company 에 회사명이 없으면 앞에 붙인다
+    """
+    if effective_generalization(req) != "low":
+        return
+    name = req.company_name.strip()
+    draft.documents = [d for d in draft.documents if d.kind != "external"]
+    notice = f"> 이 문서는 과제용으로 만든 합성 자료입니다. {name} 의 실제 문서·수치가 아닙니다.\n\n"
+    for doc in draft.documents:
+        if not doc.content.startswith("> 이 문서는 과제용"):
+            doc.content = notice + doc.content
+    data_note = f"모든 CSV 는 과제용 합성 데이터입니다. {name} 의 실제 수치가 아닙니다."
+    if data_note not in draft.data_notes:
+        draft.data_notes.insert(0, data_note)
+    if draft.context and name not in draft.context.company:
+        draft.context.company = f"{name} — {draft.context.company}"
+
+
+def leak_terms(req: ProjectRequest) -> list[str]:
+    """유출 검사 단어. 가상 기업으로 만들 때는 출제 기업 이름도 공개본에 나오면 안 된다."""
+    terms = list(req.sensitive_terms)
+    if effective_generalization(req) != "low" and req.company_name.strip():
+        terms.append(req.company_name.strip())
+    return terms
 
 
 def check_leak(draft: ProjectDraft, sensitive_terms: list[str]) -> LeakReport:
