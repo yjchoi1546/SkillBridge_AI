@@ -50,6 +50,7 @@ App 화면·DB·작업 큐를 이걸로 먼저 만들고, 결제 후 `openai` �
 | `ProjectDraft.skills`, `estimated_effort`, `deliverables`, `review_criteria`, `done_examples`, `not_done_examples`, `tests` | 과제 단위로 올라옴 | 과제 상세에 표시 (난이도 탭 대신) |
 | `Submission.design_answers` (`DesignAnswer`) | `question_id`, `answer` | 제출할 때 채워 보냄 |
 | `generate_followup_questions`, `evaluate_submission` | `project=` 선택 인자 (과제 전체) | 평가 호출에 draft 를 넘김 |
+| `ProjectRequest.company_name`, `generalization` | **기본값이 바뀜: `low` = 실제 회사명 사용.** `medium`/`high` = 가상 기업. 회사명이 없거나 민감 단어에 있으면 자동으로 가상 기업. 실제 회사명일 때는 모든 문서·CSV 에 '합성 자료' 표시, 외부 기사 문서 없음 | 요청 때 **회사 이름을 `company_name` 으로 넘김.** 요청 화면에 "가상 기업으로 만들기" 선택지 (지금 `WorkspaceService` 는 `low` 를 `medium` 으로 바꿔 보냄) |
 | `ProjectDraft.tasks`, `dataset`, `Difficulty` | **제거 예정.** 전환 기간에는 v4 과제로 만든 호환용 3개를 계속 채운다 | v4 화면으로 옮긴 뒤 알려 주면 AI 가 지운다 |
 
 ## v2 → v3 변경점 (실무 수준 과제)

@@ -62,9 +62,13 @@ class ProjectRequest(BaseModel):
         description="공개 과제에 절대 나오면 안 되는 단어. 예: 회사명, 제품명, 내부 시스템명",
     )
     generalization: Literal["low", "medium", "high"] = Field(
-        default="medium",
-        description="공개 과제 일반화 수준. low=고유명사만 치환, medium=업종까지 일반화, high=다른 도메인으로 이전",
+        default="low",
+        description=(
+            "과제 속 회사. low=실제 회사명 사용(기본, 자료는 합성 표시), medium=같은 업종 가상 기업, "
+            "high=다른 업종 가상 기업. low 인데 company_name 이 없거나 민감 단어에 있으면 medium 으로 만든다"
+        ),
     )
+    company_name: str = Field(default="", description="(v4) 출제 기업 이름. generalization=low 일 때 과제에 그대로 쓴다")
     clarifications: list[Clarification] = Field(default_factory=list)
 
 
