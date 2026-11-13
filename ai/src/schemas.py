@@ -84,6 +84,9 @@ class DatasetColumn(BaseModel):
     name: str
     dtype: Literal["string", "int", "float", "date", "bool"]
     description: str
+    references: str | None = Field(
+        default=None, description="(v4) 다른 표를 가리키는 열이면 '표이름.열이름'. 예: stores.store_code"
+    )
 
 
 class SampleDataset(BaseModel):
@@ -117,7 +120,10 @@ class Scenario(BaseModel):
 
 
 class TaskSpec(BaseModel):
-    """난이도 하나의 과제 명세. 공개본에 그대로 들어가므로 정답·숨은 함정을 넣지 않는다."""
+    """(v4 에서 제거 예정) 난이도 하나의 과제 명세. 공개본에 그대로 들어가므로 정답·숨은 함정을 넣지 않는다.
+
+    v4 생성 결과에서는 ProjectDraft 의 과제 단위 필드로 만든 호환용이다. App 이 v4 로 옮기면 지운다.
+    """
 
     difficulty: Difficulty
     title: str
@@ -158,6 +164,48 @@ class BusinessRule(BaseModel):
     text: str = Field(description="예: 전주 대비 순매출 20% 이상 하락 지점은 본부장 보고 대상")
     source: Literal["company", "assumed"] = Field(description="company=기업 제공, assumed=AI 가정 (기업 확인 필요)")
     note: str = Field(default="", description="assumed 면 가정한 이유")
+    category: Literal["authority", "calculation", "business"] = Field(
+        default="business", description="(v4) authority=누가 승인하나, calculation=어떻게 계산하나, business=업무 기준"
+    )
+
+
+class ProblemStatement(BaseModel):
+    """(v4) 참여자에게 주는 문제. 정답이 아니라 '이 회사에 이런 문제가 있다' 까지만 쓴다."""
+
+    situation: str = Field(description="지금 회사에서 벌어지는 일. 자료에서 확인할 수 있는 사실 위주")
+    tensions: list[str] = Field(default_factory=list, description="부서끼리 이해가 엇갈리는 곳")
+    mission: str = Field(description="참여자가 만들어 보여줄 것")
+    scope_guide: str = Field(default="", description="범위를 좁히는 요령. 예: 상품 하나, 지점 하나로 시작")
+
+
+class MaterialDocument(BaseModel):
+    """(v4) 자료실의 문서 한 개. 성격(kind)에 따라 믿을 수 있는 정도가 다르다."""
+
+    filename: str = Field(description="예: approval_policy.md")
+    title: str
+    kind: Literal["policy", "record", "opinion", "external"] = Field(
+        description="policy=규정·계약(사실), record=기록, opinion=회의록·메모 등 부서 의견, external=기사 등 확인 안 된 외부 정보"
+    )
+    content: str = Field(description="마크다운 본문")
+    description: str = Field(default="", description="파일 목록에 보여 줄 한 줄 설명")
+
+
+class StartGuide(BaseModel):
+    """(v4) 어디서부터 볼지 안내. 난이도 대신 참여자가 시작점을 잡게 돕는다."""
+
+    open_points: list[str] = Field(default_factory=list, description="자료만으로는 답이 안 나오는 곳")
+    questions: list[str] = Field(default_factory=list, description="시작할 때 던져 볼 질문")
+    first_files: list[str] = Field(default_factory=list, description="먼저 볼 파일 이름")
+
+
+class DesignQuestion(BaseModel):
+    """(v4) 제출할 때 답하는 설계 설명 문항. 기본 3개 + 과제에 따라 최대 2개 추가."""
+
+    id: str = Field(description="기본 문항: q_target, q_flow, q_basis")
+    title: str
+    prompts: list[str] = Field(description="하위 질문")
+    required: bool = True
+    max_chars: int = 500
 
 
 class ProjectDraft(BaseModel):
@@ -171,14 +219,31 @@ class ProjectDraft(BaseModel):
     domain_tags: list[str] = Field(
         default_factory=list, description="도메인 태그. 예: 제조, 금융. 개인 회원 탐색 필터용"
     )
-    tasks: list[TaskSpec] = Field(description="초급/중급/고급")
-    dataset: SampleDataset = Field(description="주 데이터 파일. datasets[0] 과 같다 (v3 에서 datasets 로 옮겨 가는 중)")
+    tasks: list[TaskSpec] = Field(
+        default_factory=list, description="(v4 에서 제거 예정) 난이도별 호환용. App 이 v4 로 옮길 때까지 계속 채운다"
+    )
+    dataset: SampleDataset = Field(description="(v4 에서 제거 예정) datasets[0] 과 같다")
     context: ProjectContext | None = Field(default=None, description="(v3) 가상 회사 세계관")
     rules: list[BusinessRule] = Field(default_factory=list, description="(v3) 업무 규칙과 출처")
     datasets: list[SampleDataset] = Field(default_factory=list, description="(v3) 데이터 파일 전체. 첫 번째 = dataset")
     data_notes: list[str] = Field(
         default_factory=list, description="(v3) 참여자에게 미리 알리는 데이터 한계. 숨은 함정은 여기 쓰지 않는다"
     )
+    # ── v4: 난이도 없는 자료실형 과제 1개 ──
+    skills: list[str] = Field(default_factory=list, description="(v4) 필요 역량 태그. 탐색 필터용")
+    estimated_effort: str = Field(default="", description="(v4) 예상 소요 기간. 예: 1주, 하루 2~3시간")
+    problem: ProblemStatement | None = Field(default=None, description="(v4) 문제 상황과 미션")
+    documents: list[MaterialDocument] = Field(default_factory=list, description="(v4) 자료실 문서")
+    required_demos: list[Scenario] = Field(
+        default_factory=list, description="(v4) 시연할 상황 normal / changed / exception 하나씩"
+    )
+    start_guide: StartGuide | None = Field(default=None, description="(v4) 시작 가이드")
+    deliverables: list[str] = Field(default_factory=list, description="(v4) 제출물")
+    design_questions: list[DesignQuestion] = Field(default_factory=list, description="(v4) 설계 설명 문항 3~5개")
+    review_criteria: list[RubricItem] = Field(default_factory=list, description="(v4) 평가 관점")
+    done_examples: list[str] = Field(default_factory=list, description="(v4) 이러면 완성")
+    not_done_examples: list[str] = Field(default_factory=list, description="(v4) 이러면 미완성")
+    tests: list[TestCase] = Field(default_factory=list, description="(v4) 자동 확인 항목 (선택). 정답은 evaluation_key")
 
 
 class LeakFinding(BaseModel):
@@ -265,6 +330,13 @@ class FollowupAnswer(BaseModel):
     answer: str
 
 
+class DesignAnswer(BaseModel):
+    """(v4) 설계 설명 문항 하나에 대한 답. 길이 제한은 DesignQuestion.max_chars (App 이 입력 단계에서 막는다)."""
+
+    question_id: str
+    answer: str
+
+
 class Submission(BaseModel):
     """청년 참여자의 제출물. 파일 저장은 app 이 하고, 평가 시 내용만 넘긴다."""
 
@@ -273,6 +345,9 @@ class Submission(BaseModel):
     process_log: list[ProcessEntry] = Field(default_factory=list, description="해결 과정 기록")
     ai_usage: str = Field(default="", description="AI 도구 사용 공개. 빈 문자열 = 사용 안 함")
     followup_answers: list[FollowupAnswer] = Field(default_factory=list)
+    design_answers: list[DesignAnswer] = Field(
+        default_factory=list, description="(v4) 설계 설명 문항별 답 (ProjectDraft.design_questions)"
+    )
 
 
 class TestResult(BaseModel):

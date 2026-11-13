@@ -1,4 +1,4 @@
-# AI ↔ App 계약 (v3 — 수정 의견은 언제든 환영, 바꿀 때는 세 명 합의)
+# AI ↔ App 계약 (v4 — 수정 의견은 언제든 환영, 바꿀 때는 세 명 합의)
 
 App(백엔드)이 AI 를 부르는 방법. 코드 정의는 [src/schemas.py](src/schemas.py), 함수는 [src/api/](src/api/).
 App 은 `from ai.src.api import ...` 로만 가져온다. 모든 함수는 `async` 이고 1~3분 걸릴 수 있으니
@@ -16,21 +16,41 @@ App 은 `from ai.src.api import ...` 로만 가져온다. 모든 함수는 `asyn
   기업 승인 → app 이 draft 를 공개 (leak_report·evaluation_key 는 계속 기업 전용)
 
 [제출물 평가]
-  개인 제출 → generate_followup_questions(task, submission) → list[FollowupQuestion]
+  개인 제출 → generate_followup_questions(task, submission, project=draft) → list[FollowupQuestion]
   개인 답변 → submission.followup_answers 에 담아
-              evaluate_submission(task, dataset, submission,
+              evaluate_submission(task, dataset, submission, project=draft,
                                   evaluation_key=저장해 둔 것) → EvaluationReport
+              (v4 전환 기간: task·dataset 은 draft.tasks[0]·draft.dataset 을 넘기면 된다)
   기업 검토 → app 이 기업 피드백을 붙여 최종 리포트 확정
 ```
 
 ### LLM 키 없이 개발하기 (가짜 모드)
 
 `.env` 에 `LLM_PROVIDER=fake` 를 두면 모든 함수가 LLM 을 부르지 않고 고정된 예시 결과를 바로 돌려준다
-(지점별 매출 보고서 과제 3개, 샘플 CSV, 평가 초안). 비용 0, 키 불필요. 결과 형태는 실제와 같으므로
+(지점별 매출 자료실형 과제 1개 — CSV·문서 여러 개, 평가 초안). 비용 0, 키 불필요. 결과 형태는 실제와 같으므로
 App 화면·DB·작업 큐를 이걸로 먼저 만들고, 결제 후 `openai` 등으로 바꾸면 된다.
 
 `user_id`(회원 ID), `session_id`(프로젝트 ID)를 넘기면 Langfuse 트레이스가 프로젝트 단위로 묶인다.
 실명·이메일은 넘기지 않는다.
+
+## v3 → v4 변경점 (난이도 없는 자료실형 과제)
+
+설계 배경·화면 영향은 [docs/contract_v4_proposal.md](../docs/contract_v4_proposal.md) (세 명 합의 완료).
+요청 1건 = 과제 1개. 회사 자료를 통째로 주고 "이런 문제가 있다, 풀어 보라" 로 제시한다. **추가 필드는 모두 기본값이 있다.**
+
+| 타입 / 함수 | 추가·변경 | App 할 일 |
+| --- | --- | --- |
+| `ProjectDraft.problem` (`ProblemStatement`) | `situation`, `tensions`, `mission`, `scope_guide` | 과제 상세 맨 위에 표시 |
+| `ProjectDraft.documents` (`MaterialDocument`) | `filename`, `title`, `kind`(`policy`/`record`/`opinion`/`external`), `content`(마크다운), `description` | 자료실 파일 목록 + 문서 보기. `kind` 배지 (규정 / 기록 / 부서 의견 / 외부 정보) |
+| `ProjectDraft.datasets` | 이제 **여러 개**. `DatasetColumn.references` 로 표 사이 연결 표시 (예: `stores.store_code`) | 파일 목록 + 내려받기 |
+| `BusinessRule.category` | `authority`(승인) / `calculation`(계산) / `business`(업무 기준) | 규칙 표를 종류별로 묶기 |
+| `ProjectDraft.required_demos` (`Scenario`) | 시연할 상황 `normal` / `changed` / `exception` 하나씩 | 과제 상세에 표시 |
+| `ProjectDraft.start_guide` (`StartGuide`) | `open_points`, `questions`, `first_files` | 과제 상세에 표시 |
+| `ProjectDraft.design_questions` (`DesignQuestion`) | 설계 설명 문항 3~5개 (`id`, `title`, `prompts`, `required`, `max_chars`=500) | 제출 화면에 문항별 입력칸·글자 수, 필수 문항 비면 제출 막기 |
+| `ProjectDraft.skills`, `estimated_effort`, `deliverables`, `review_criteria`, `done_examples`, `not_done_examples`, `tests` | 과제 단위로 올라옴 | 과제 상세에 표시 (난이도 탭 대신) |
+| `Submission.design_answers` (`DesignAnswer`) | `question_id`, `answer` | 제출할 때 채워 보냄 |
+| `generate_followup_questions`, `evaluate_submission` | `project=` 선택 인자 (과제 전체) | 평가 호출에 draft 를 넘김 |
+| `ProjectDraft.tasks`, `dataset`, `Difficulty` | **제거 예정.** 전환 기간에는 v4 과제로 만든 호환용 3개를 계속 채운다 | v4 화면으로 옮긴 뒤 알려 주면 AI 가 지운다 |
 
 ## v2 → v3 변경점 (실무 수준 과제)
 

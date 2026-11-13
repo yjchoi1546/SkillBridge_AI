@@ -4,6 +4,7 @@ from ..schemas import (
     EvaluationKey,
     EvaluationReport,
     FollowupQuestion,
+    ProjectDraft,
     SampleDataset,
     Submission,
     TaskSpec,
@@ -27,13 +28,17 @@ async def generate_followup_questions(
     task: TaskSpec,
     submission: Submission,
     *,
+    project: ProjectDraft | None = None,
     user_id: str | None = None,
     session_id: str | None = None,
 ) -> list[FollowupQuestion]:
     """제출 직후, 제출물을 보고 참여자에게 물을 후속 질문을 만든다.
 
     참여자 답변은 submission.followup_answers 에 담아 evaluate_submission 에 넘긴다.
+    project: (v4) 과제 전체. App 은 v4 로 옮기면서 함께 넘긴다.
     """
+    # TODO(AI-B): v4 — task 대신 project(자료실·설계 문항)와 submission.design_answers 로 질문을 만든다.
+    _ = project
     with trace_run(
         "generate-followup-questions",
         input=_submission_input(task, submission),
@@ -52,6 +57,7 @@ async def evaluate_submission(
     dataset: SampleDataset,
     submission: Submission,
     *,
+    project: ProjectDraft | None = None,
     evaluation_key: EvaluationKey | None = None,
     user_id: str | None = None,
     session_id: str | None = None,
@@ -62,7 +68,9 @@ async def evaluate_submission(
     user_id: 참여자 ID, session_id: 프로젝트 ID 를 넘기면 생성·수정·평가 트레이스가 한 세션으로 묶인다.
     """
     # TODO(AI-B): evaluation_key 를 평가 그래프에 넘겨 run_tests(정답 비교)·draft_review(함정 확인)에 쓴다.
-    _ = evaluation_key
+    # TODO(AI-B): v4 — project 가 오면 task·dataset 대신 과제 전체(review_criteria, required_demos,
+    #             design_questions)와 submission.design_answers 로 평가한다.
+    _ = (project, evaluation_key)
     with trace_run(
         "evaluate-submission",
         input=_submission_input(task, submission),

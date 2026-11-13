@@ -145,3 +145,25 @@ def test_v3_evaluate_accepts_evaluation_key(sample_requests):
         )
     )
     assert report.test_results
+
+
+# ── v4 계약 ───────────────────────────────────────────────
+
+
+def test_v4_submission_accepts_design_answers():
+    submission = api.Submission(
+        files={"main.py": "print(1)"},
+        design_answers=[api.DesignAnswer(question_id="q_target", answer="재고 담당자의 발주 결정을 돕는다.")],
+    )
+    assert submission.design_answers[0].question_id == "q_target"
+
+
+def test_v4_evaluation_functions_accept_project(sample_requests):
+    result = _generate(_request(sample_requests))
+    draft, submission = result.draft, api.Submission(files={"main.py": "print(1)"})
+    task = draft.tasks[0]
+    assert asyncio.run(api.generate_followup_questions(task, submission, project=draft)) == []
+    report = asyncio.run(
+        api.evaluate_submission(task, draft.dataset, submission, project=draft, evaluation_key=result.evaluation_key)
+    )
+    assert report.test_results
