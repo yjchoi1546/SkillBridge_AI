@@ -10,7 +10,7 @@
 | A / B 담당자 | 아래 표를 보고 AI 두 명이 나눈다. 정해지면 `CLAUDE.md` 소유권 표의 "(미정)" 을 이름으로 바꾼다 | AI 두 명 |
 | 샌드박스 방식 | Rockchip 보드는 쓰지 않는 방향 (대회 조건에 없으면). Pyodide 와 Docker 중 실험 후 결정 | B |
 | ~~스키마 v3~~ | **확정** — [ai/CONTRACT.md](../ai/CONTRACT.md) "v2 → v3 변경점" | 세 명 |
-| **계약 v4 (제안)** | 난이도 제거, 과제 1개 + 자료실(CSV·문서 여러 개), 설계 설명 문항 — [contract_v4_proposal.md](contract_v4_proposal.md) 8절 | **세 명** |
+| **계약 v4 (제안)** | 난이도 제거, 요청 1건 = 고품질 과제 1개 (자료실형), 설계 설명 문항 3~5개(500자) — [contract_v4_proposal.md](contract_v4_proposal.md) 8절 | **세 명** |
 | 남은 계약 미결 항목 | 첨부 문서 바이트/텍스트, 도메인 태그 자유 입력/고정 목록 ([ai/CONTRACT.md](../ai/CONTRACT.md)) | 세 명 |
 
 ## 1. A 와 B 비교
