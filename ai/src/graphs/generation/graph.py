@@ -4,14 +4,16 @@ from langgraph.graph import END, START, StateGraph
 
 from ...core.errors import GenerationError
 from ...core.tracing import annotate, langchain_callbacks
-from ...schemas import GenerationResult, LeakReport, ProjectDraft, ProjectRequest
+from ...schemas import GenerationResult, ProjectDraft, ProjectRequest
 from .nodes import (
     analyze_request,
-    design_dataset,
-    design_evaluation,
-    design_project,
+    design_data,
+    design_world,
+    finish_project,
     validate_draft,
+    write_documents,
 )
+from .assembly import LEAK_PREFIX
 from .routers import route_after_validation
 from .state import GenerationState
 
@@ -19,21 +21,17 @@ from .state import GenerationState
 @lru_cache(maxsize=1)
 def build_graph():
     g = StateGraph(GenerationState)
-    g.add_node("analyze_request", analyze_request)
-    g.add_node("design_project", design_project)
-    g.add_node("design_dataset", design_dataset)
-    g.add_node("design_evaluation", design_evaluation)
-    g.add_node("validate_draft", validate_draft)
-
-    g.add_edge(START, "analyze_request")
-    g.add_edge("analyze_request", "design_project")
-    g.add_edge("design_project", "design_dataset")
-    g.add_edge("design_dataset", "design_evaluation")
-    g.add_edge("design_evaluation", "validate_draft")
+    # LLM 호출은 순서대로 한 번에 하나씩 (무료 API 동시 요청 제한)
+    steps = ["analyze_request", "design_world", "design_data", "write_documents", "finish_project", "validate_draft"]
+    for name, fn in zip(steps, [analyze_request, design_world, design_data, write_documents, finish_project, validate_draft]):
+        g.add_node(name, fn)
+    g.add_edge(START, steps[0])
+    for a, b in zip(steps, steps[1:]):
+        g.add_edge(a, b)
     g.add_conditional_edges(
         "validate_draft",
         route_after_validation,
-        {"retry": "design_project", "done": END},
+        {"retry": "design_world", "done": END},
     )
     return g.compile()
 
@@ -55,11 +53,11 @@ async def run_generation(
     )
     # KPI 01 (필수 항목 충족률) — 몇 번 만에 검증을 통과했는지
     annotate(attempts=final.get("attempts", 0), validation_errors=final.get("errors", []))
-    if final.get("errors"):
-        raise GenerationError(final["errors"])
-    # TODO(AI-A): 유출 검사 노드가 생기면 그 LeakReport 를 쓴다.
+    blocking = [e for e in final.get("errors", []) if not e.startswith(LEAK_PREFIX)]
+    if blocking:
+        raise GenerationError(blocking)
     return GenerationResult(
         draft=final["draft"],
-        leak_report=LeakReport(status="not_checked"),
+        leak_report=final["leak_report"],
         evaluation_key=final["evaluation_key"],
     )
